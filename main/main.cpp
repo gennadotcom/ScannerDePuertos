@@ -1,14 +1,14 @@
 #include <stdio.h>
-//#include <winsock.h>
-//#include <ws2tcpip.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 
-//#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "ws2_32.lib")
 
 
-const int MAXPUERTOS = 1023;
+const int MAXPUERTOS = 2000;
 
 void mostrarMenu(int *res);
-void escanearPuertos(int array[], int * cant, int inicio, int fin);
+void escanearPuertos(int array[], int * cant, int inicio, int fin, char ipDestino[16]);
 void ordenamientoBurbuja(int array[], int n);
 void mostrarEscaneo(int array[], int n);
 int buscarPuerto(int array[], int n, int puerto);
@@ -21,7 +21,14 @@ int main()
 	int cantActual = 0; //cantidad de puertos escaneados
 	int opcion, inicio, fin, puertoAbuscar;
 
+	char ipDestino[16];
 
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
+	{
+		printf("Error, no se pudo inicializar el winsock");
+		return 1;
+	}
 	
 	
 	do
@@ -32,6 +39,9 @@ int main()
 		{
 
 		case 1:
+			printf("Que ip desea escanear?");
+			scanf_s("%15s", ipDestino, (unsigned int)sizeof(ipDestino));
+
 			printf("donde desea iniciar el escaneo?");
 			scanf_s("%d", &inicio);
 
@@ -39,7 +49,7 @@ int main()
 			scanf_s("%d", &fin);
 
 			printf("[INFO]Iniciando escaneo...\n");
-			escanearPuertos(puertosEscaneados, &cantActual, inicio, fin);
+			escanearPuertos(puertosEscaneados, &cantActual, inicio, fin, ipDestino);
 			printf("Escaneo finalizado.\n");
 			break;
 
@@ -64,8 +74,9 @@ int main()
 				scanf_s("%d", &puertoAbuscar);
 
 				int resultado = buscarPuerto(puertosEscaneados, cantActual, puertoAbuscar);
-				printf("[INFO] El puerto se ha encontrado en la posicion %d \n", resultado);
 
+				if (resultado != -1) printf("[INFO] El puerto se ha encontrado en la posicion %d \n", resultado);
+				
 				if(resultado == -1 ) printf("[INFO] No se ha encontrado el puerto.\n");
 			}
 			break;
@@ -82,7 +93,7 @@ int main()
 
 	} while (opcion != 4);
 
-	//WSACleanup();
+	WSACleanup();
 	return 0;
 }
 
@@ -101,18 +112,57 @@ void mostrarMenu(int *res)
 	*res = respuesta;
 }
 
-void escanearPuertos(int array[], int *cant, int inicio, int fin)
+void escanearPuertos(int array[], int *cant, int inicio, int fin, char ipDestino[16])
 {
+	int j = 0;
 	
-	
+
+
 	for ( int i = inicio; i < fin + 1; i++)
 	{
-		array[i-inicio] = i ;
+		SOCKET escanear_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		
+		if (escanear_socket == INVALID_SOCKET)
+		{
+			printf("[INFO] Error al crear el socket para el puerto %d \n", i);
+		}
+		u_long modo = 1;
+		ioctlsocket(escanear_socket, FIONBIO, &modo);
+
+		sockaddr_in target;
+		target.sin_family = AF_INET;
+		target.sin_port = htons(i);
+		inet_pton(AF_INET, ipDestino, &target.sin_addr);
+
+		connect(escanear_socket, (sockaddr*)&target, sizeof(target));
+
+		fd_set setEscritura;
+		FD_ZERO(&setEscritura);
+		FD_SET(escanear_socket, &setEscritura);
+
+		// Estructura de tiempo para el límite de espera
+		timeval timeout;
+		timeout.tv_sec = 0;
+		timeout.tv_usec = 15000;
+
+		int seleccion = select(0, NULL, &setEscritura, NULL, &timeout);
+
+		if (seleccion > 0)
+		{
+			array[j] = i;
+			shutdown(escanear_socket, SD_BOTH);
+
+			j += 1;
+		}
+
+		closesocket(escanear_socket);
+
 	}
-	*cant = (fin - inicio) + 1;
+	*cant = j;
 
 	printf("[INFO] Se encontraron %d puertos abiertos\n", *cant);
 
+	
 
 }
 
@@ -144,7 +194,7 @@ void mostrarEscaneo(int array[], int n)
 
 	for (int i = 0; i < n; i++)
 	{
-		printf(" %d ", array[i]);
+		printf(" %d ", *(array + i));
 	}
 }
 
