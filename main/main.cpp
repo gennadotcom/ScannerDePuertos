@@ -7,8 +7,8 @@
 
 const int MAXPUERTOS = 2000;
 
-void mostrarMenu(int *res);
-void escanearPuertos(int array[], int * cant, int inicio, int fin, char ipDestino[16]);
+void mostrarMenu(int* res);
+void escanearPuertos(int array[], int* cant, int inicio, int fin, char ipDestino[16]);
 void ordenamientoBurbuja(int array[], int n);
 void mostrarEscaneo(int array[], int n);
 int buscarPuerto(int array[], int n, int puerto);
@@ -24,13 +24,13 @@ int main()
 	char ipDestino[16];
 
 	WSADATA wsaData;
-	if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0)
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 	{
 		printf("Error, no se pudo inicializar el winsock");
 		return 1;
 	}
-	
-	
+
+
 	do
 	{
 		mostrarMenu(&opcion);
@@ -45,12 +45,31 @@ int main()
 			printf("donde desea iniciar el escaneo?");
 			scanf_s("%d", &inicio);
 
+			while (inicio < 0) {
+				printf("[ERROR] El puerto inicial no puede ser negativo.\n");
+
+				printf("Por favor, ingrese un puerto valido \n");
+				scanf_s("%d", &inicio);
+			}
+
 			printf("donde desea finzalizar el escaneo?");
 			scanf_s("%d", &fin);
 
-			printf("[INFO]Iniciando escaneo...\n");
-			escanearPuertos(puertosEscaneados, &cantActual, inicio, fin, ipDestino);
-			printf("Escaneo finalizado.\n");
+			
+			if (inicio > fin) {
+				printf("[ERROR] El puerto de inicio no puede ser mayor al final.\n");
+			}
+			else if ((fin - inicio + 1) > MAXPUERTOS) {
+				printf("[ERROR] El rango supera el maximo permitido (%d).\n", MAXPUERTOS);
+			}
+			else {
+				printf("[INFO] Iniciando escaneo...\n");
+
+				printf("[INFO]Iniciando escaneo...\n");
+				escanearPuertos(puertosEscaneados, &cantActual, inicio, fin, ipDestino);
+				ordenamientoBurbuja(puertosEscaneados, cantActual);
+				printf("Escaneo finalizado.\n");
+			}
 			break;
 
 		case 2:
@@ -60,7 +79,7 @@ int main()
 			{
 				printf("-----Reporte de escaneo-----\n");
 				mostrarEscaneo(puertosEscaneados, cantActual);
-				
+
 			}
 			break;
 
@@ -76,8 +95,8 @@ int main()
 				int resultado = buscarPuerto(puertosEscaneados, cantActual, puertoAbuscar);
 
 				if (resultado != -1) printf("[INFO] El puerto se ha encontrado en la posicion %d \n", resultado);
-				
-				if(resultado == -1 ) printf("[INFO] No se ha encontrado el puerto.\n");
+
+				if (resultado == -1) printf("[INFO] No se ha encontrado el puerto.\n");
 			}
 			break;
 		case 4:
@@ -97,10 +116,10 @@ int main()
 	return 0;
 }
 
-void mostrarMenu(int *res)
+void mostrarMenu(int* res)
 {
 	int respuesta;
-		
+
 	printf("_____________________________\n");
 	printf("[1] escanear puertos\n");
 	printf("[2] mostrar reporte\n");
@@ -112,19 +131,20 @@ void mostrarMenu(int *res)
 	*res = respuesta;
 }
 
-void escanearPuertos(int array[], int *cant, int inicio, int fin, char ipDestino[16])
+void escanearPuertos(int array[], int* cant, int inicio, int fin, char ipDestino[16])
 {
 	int j = 0;
-	
 
 
-	for ( int i = inicio; i < fin + 1; i++)
+
+	for (int i = inicio; i < fin + 1; i++)
 	{
 		SOCKET escanear_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-		
+
 		if (escanear_socket == INVALID_SOCKET)
 		{
 			printf("[INFO] Error al crear el socket para el puerto %d \n", i);
+			continue;
 		}
 		u_long modo = 1;
 		ioctlsocket(escanear_socket, FIONBIO, &modo);
@@ -140,7 +160,7 @@ void escanearPuertos(int array[], int *cant, int inicio, int fin, char ipDestino
 		FD_ZERO(&setEscritura);
 		FD_SET(escanear_socket, &setEscritura);
 
-		// Estructura de tiempo para el límite de espera
+		// Estructura de tiempo para el limite de espera
 		timeval timeout;
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 15000;
@@ -162,7 +182,7 @@ void escanearPuertos(int array[], int *cant, int inicio, int fin, char ipDestino
 
 	printf("[INFO] Se encontraron %d puertos abiertos\n", *cant);
 
-	
+
 
 }
 
@@ -170,15 +190,15 @@ void ordenamientoBurbuja(int array[], int n)
 {
 	int i, j, temp;
 
-	for (i = 0; i < n - 1; i++) 
+	for (i = 0; i < n - 1; i++)
 	{
 
-		for (j = 0; j < n - i - 1; j++) 
+		for (j = 0; j < n - i - 1; j++)
 		{
 
-			if (array[j] > array[j + 1]) 
+			if (array[j] > array[j + 1])
 			{
-				
+
 				temp = array[j];
 				array[j] = array[j + 1];
 				array[j + 1] = temp;
@@ -190,7 +210,6 @@ void ordenamientoBurbuja(int array[], int n)
 void mostrarEscaneo(int array[], int n)
 {
 
-	ordenamientoBurbuja(array, n);
 
 	for (int i = 0; i < n; i++)
 	{
@@ -198,12 +217,12 @@ void mostrarEscaneo(int array[], int n)
 	}
 }
 
-int buscarPuerto(int array[], int n, int puerto) 
+int buscarPuerto(int array[], int n, int puerto)
 {
 	int derecha = n - 1;
 	int izquierda = 0;
 	int medio;
-	
+
 	while (izquierda <= derecha)
 	{
 		medio = (izquierda + derecha) / 2;
