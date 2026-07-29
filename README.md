@@ -29,3 +29,18 @@
 2. Asegurarse de que la librería esté vinculada (el código ya incluye #pragma comment(lib, "ws2_32.lib") ).
 3. Compilar en modo  **Debug** (Ctrl + Shift + B).
 4. Ejecutar con F5 o Ctrl + F5.
+
+## Guía de uso 
+Al iniciar el programa se desplegará el menú principal 
+_____________________________
+[1] Escanear puertos
+[2] Mostrar reporte
+[3] Buscar puerto
+[4] Salir
+------------------------------
+
+1 *Escanear puertos*:
+Solicita la dirección IP de destino (ej. 127.0.0.1 o 192.168.1.1).
+Solicita el puerto de inicio (ej. 1) y el puerto final (ej. 1024).
+2 *Mostrar reporte*: Lista todos los puertos que respondieron positivamente al escaneo (ordenados de menor a mayor).
+3 *Buscar puerto*: Realiza una búsqueda binaria para determinar en qué posición del reporte se encuentra un puerto en particular.
